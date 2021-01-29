@@ -1,0 +1,20 @@
+---
+#System Settings
+php_modules: [ 'php-curl', 'php-gd', 'php-mbstring', 'php-xml', 'php-xmlrpc', 'php-soap', 'php-intl', 'php-zip' ]
+
+#MySQL Settings
+mysql_root_password: "MY_STRONG_ROOT_PASSWORD"
+mysql_db: "DB_NAME"
+mysql_user: "MYSQL_USER_NAME"
+mysql_password: "MY_STRONG_USER_PASSWORD"
+
+#HTTP Settings
+http_host: "your_domain"
+http_conf: "your_domain.conf"
+http_port: "80"
+http_old_host: "OLD_IP_OR_HOST"  # for restore backup
+http_new_host: "NEW_IP_OR_HOST"  # for restore backup
+
+#MySQL Backup and Update database
+mysql_backup_name: "backup.sql" # set your backup file name in /tmp folder on your pc
+mysql_j2_name: "sql.j2" # for update ip or site domain

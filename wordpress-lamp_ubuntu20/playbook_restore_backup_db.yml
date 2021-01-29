@@ -1,0 +1,69 @@
+---
+- hosts: all
+  become_method: sudo
+  become: yes
+  gather_facts: yes
+  vars_files:
+    - vars/default.yml
+  vars: 
+    source_folder: ./files
+    destin_folder: /tmp
+
+  tasks:
+
+    - name: Remove old MySQL Wordpress database
+      mysql_db:
+        name: "{{mysql_db}}"
+        state: absent
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+      tags: [ mysql ]
+
+    - name: Creates database for WordPress
+      mysql_db:
+        name: "{{ mysql_db }}"
+        state: present
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+      tags: [ mysql ]
+
+    - name: Create MySQL user for WordPress
+      mysql_user:
+        name: "{{ mysql_user }}"
+        password: "{{ mysql_password }}"
+        priv: "{{ mysql_db }}.*:ALL"
+        state: present
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+      tags: [ mysql ]
+  
+    - name: Copy Wordpress DB to Servers
+      copy: 
+        src: "/tmp/{{ mysql_backup_name }}"
+        dest: "/tmp"
+        mode: '0777'
+        owner: mysql
+        group: mysql
+        mode: '0600'
+        backup: yes
+    
+    - name: Restore the SQL DB
+      mysql_db: name={{ mysql_db }} state=import target=/tmp/{{ mysql_backup_name }} login_user=root login_password={{ mysql_root_password }}
+
+
+    - name: Provide user {{ mysql_user }} access to the {{ mysql_db }} from client
+      mysql_user: name={{ mysql_user }} password={{ mysql_password }} priv="{{ mysql_db }}.*:ALL" state=present login_user=root login_password={{ mysql_root_password }}
+
+  ## Update ip or site domain in db  
+  ## read readme.md
+    - name: Generate sql file
+      template: src={{source_folder}}/{{mysql_j2_name}} dest={{destin_folder}}/{{mysql_j2_name}}.sql mode=0555
+    
+    - name: Update the SQL DB
+      mysql_db: name={{ mysql_db }} state=import target=/tmp/{{ mysql_j2_name }}.sql login_user=root login_password={{ mysql_root_password }}
+
+
+  handlers:
+
+    - name: Restart mysql
+      service: name=mysql state=restarted enabled=yes  
