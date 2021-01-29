@@ -56,11 +56,11 @@
 
   ## Update ip or site domain in db  
   ## read readme.md
-    - name: Generate sql file
-      template: src={{source_folder}}/{{mysql_j2_name}} dest={{destin_folder}}/{{mysql_j2_name}}.sql mode=0555
-    
-    - name: Update the SQL DB
-      mysql_db: name={{ mysql_db }} state=import target=/tmp/{{ mysql_j2_name }}.sql login_user=root login_password={{ mysql_root_password }}
+  #  - name: Generate sql file
+  #    template: src={{source_folder}}/{{mysql_j2_name}} dest={{destin_folder}}/{{mysql_j2_name}}.sql mode=0555
+  #  
+  #  - name: Update the SQL DB
+  #    mysql_db: name={{ mysql_db }} state=import target=/tmp/{{ mysql_j2_name }}.sql login_user=root login_password={{ mysql_root_password }}
 
 
   handlers:
