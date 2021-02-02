@@ -1,9 +1,9 @@
 # Wordpress on Linux
 
-This playbook has been checked for:
-- Ubuntu 20.04 LTS
-- Debian 10
-- Centos 8 (RedHat)
+This playbook has been tested on:
+- **Ubuntu** 20.04 LTS
+- **Debian** 10
+- **Centos** 8 (**RedHat**)
 
 virtualhost will be created with the options specified in the `vars/default.yml` variable file.
 
