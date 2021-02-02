@@ -5,8 +5,6 @@ This playbook has been tested on:
 - **Debian** 10
 - **Centos** 8 (**RedHat**)
 
-virtualhost will be created with the options specified in the `vars/default.yml` variable file.
-
 ## Settings
 
 - `php_modules`:  An array containing PHP extensions that should be installed to support your WordPress setup. You don't need to change this variable, but you might want to include new extensions to the list if your specific setup requires it.
@@ -34,22 +32,6 @@ cd ansible-playbooks/wordpress-lamp
 nano vars/default.yml
 ```
 
-```yml
----
-#System Settings
-php_modules: [ 'php-curl', 'php-gd', 'php-mbstring', 'php-xml', 'php-xmlrpc', 'php-soap', 'php-intl', 'php-zip' ]
-
-#MySQL Settings
-mysql_root_password: "mysql_root_password"
-mysql_db: "wordpress"
-mysql_user: "sammy"
-mysql_password: "password"
-
-#HTTP Settings
-http_host: "your_domain"
-http_conf: "your_domain.conf"
-http_port: "80"
-```
 
 ### 3. Run the Playbook
 
