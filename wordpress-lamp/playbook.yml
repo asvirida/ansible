@@ -1,0 +1,274 @@
+#########################################################
+# Wordpress on Debian\Ubuntu\RedHat\CentOS              #
+#########################################################
+---
+- hosts: all
+  become: yes
+  vars_files:
+    - vars/default.yml
+
+  tasks:
+    - name: Install and Upgrade all packages on Debian
+      apt: name=aptitude update_cache=yes state=latest force_apt_get=yes
+      when: ansible_os_family == "Debian"
+      tags: [ system ]
+
+    - name: Install and Upgrade all packages on RedHat
+      yum: name=* state=latest
+      when: ansible_os_family == "RedHat"
+      tags: [ system ]
+
+    - name: Install MySQL Packages on Debian
+      apt: name=mariadb-server update_cache=yes state=latest
+      when: ansible_os_family == "Debian"
+      tags: [ system ]
+
+    - name: Install MySQL Packages on RedHat
+      yum: name=mariadb-server update_cache=yes state=latest 
+      when: ansible_os_family == "RedHat"
+      tags: [ system ]
+
+    - name: Enabled MySQL service on RedHat
+      service: name=mariadb state=started enabled=yes
+      when: ansible_os_family == "RedHat"
+      tags: [ system ]
+      
+    - name: Install Apache on Debian
+      apt: name=apache2 update_cache=yes state=latest
+      when: ansible_os_family == "Debian"
+      tags: [ system ]
+
+    - name: Install httpd on RedHat
+      yum: name=httpd state=latest
+      when: ansible_os_family == "RedHat"
+      tags: [ system ]
+
+    - name: Start Web Servers on RedHat and make it Enable on boot
+      service: name=httpd state=started enabled=yes
+      when: ansible_os_family == "RedHat"
+      tags: [ system ]
+    
+    - name: Install LAMP Packages on Debian
+      apt: name={{ item }} update_cache=yes state=latest
+      loop: [ 'ufw', 'python3-pymysql', 'php', 'php-mysql', 'libapache2-mod-php' ]
+      when: ansible_os_family == "Debian"
+      tags: [ system ]
+
+    - name: Install PHP Extensions on Debian
+      apt: name={{ item }} update_cache=yes state=latest
+      loop: "{{ php_modules }}"
+      when: ansible_os_family == "Debian"
+      tags: [ system ]
+
+    - name: Install PHP Extensions on RedHat
+      yum: name={{ item }} update_cache=yes state=latest
+      loop: "{{ php_modules_redhat }}"
+      when: ansible_os_family == "RedHat"
+      tags: [ system ]
+
+    - name: Enabled PHP Service on RedHat
+      service: name=php-fpm state=started enabled=yes
+      when: ansible_os_family == "RedHat"
+      tags: [ system ]
+
+  # Apache Configuration
+    - name: Create document root on Debian
+      file:
+        path: "/var/www/{{ http_host }}"
+        state: directory
+        owner: "www-data"
+        group: "www-data"
+        mode: '0755'
+      when: ansible_os_family == "Debian"
+      tags: [ apache ]
+
+    - name: Create document root on RedHat
+      file:
+        path: "/var/www/{{ http_host }}"
+        state: directory
+        owner: "apache"
+        group: "apache"
+        mode: '0755'
+      when: ansible_os_family == "RedHat"
+      tags: [ apache ]
+
+    - name: Set up Apache VirtualHost on Debian
+      template:
+        src: "files/apache.conf.j2"
+        dest: "/etc/apache2/sites-available/{{ http_conf }}"
+      notify:
+        - Reload Apache on RedHat
+        - Reload Apache on Debian
+      when: ansible_os_family == "Debian"
+      tags: [ apache ]
+
+    - name: Set up Apache VirtualHost on RedHat
+      template:
+        src: "files/httpd.conf.j2"
+        dest: "/etc/httpd/conf.d/{{ http_conf }}"
+      notify:
+        - Reload Apache on RedHat
+        - Reload Apache on Debian
+      when: ansible_os_family == "RedHat"
+      tags: [ apache ]
+
+    - name: Enable rewrite module on Debian
+      shell: /usr/sbin/a2enmod rewrite
+      notify:
+        - Reload Apache on Debian
+      when: ansible_os_family == "Debian"
+      tags: [ apache ]
+
+    - name: Enable rewrite module on RedHat
+      apache2_module:
+        name: rewrite
+        state: present
+        ignore_configcheck: True
+      when: ansible_os_family == "RedHat"
+      tags: [ apache ]
+
+    - name: Enable new site
+      shell: /usr/sbin/a2ensite {{ http_conf }}
+      notify:
+        - Reload Apache on Debian
+      when: ansible_os_family == "Debian"
+      tags: [ apache ]
+
+    - name: Disable default Apache site
+      shell: /usr/sbin/a2dissite 000-default.conf
+      notify:
+        - Restart Apache on Debian
+      when: ansible_os_family == "Debian"
+      tags: [ apache ]
+
+  # MySQL Configuration
+
+    - name: Set the root password on Debian
+      mysql_user:
+        name: root
+        password: "{{ mysql_root_password }}"
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+      when: ansible_os_family == "Debian"
+      tags: [ mysql, mysql-root ]
+
+    - name: Set the root password on RedHat
+      mysql_user:
+        name: root
+        password: "{{ mysql_root_password }}"
+        login_unix_socket: /var/lib/mysql/mysql.sock
+      when: ansible_os_family == "RedHat"
+      tags: [ mysql, mysql-root ]
+
+    - name: Remove all anonymous user accounts
+      mysql_user:
+        name: ''
+        host_all: yes
+        state: absent
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+      tags: [ mysql ]
+
+    - name: Remove the MySQL test database
+      mysql_db:
+        name: test
+        state: absent
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+      tags: [ mysql ]
+
+    - name: Creates database for WordPress
+      mysql_db:
+        name: "{{ mysql_db }}"
+        state: present
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+      tags: [ mysql ]
+
+    - name: Create MySQL user for WordPress
+      mysql_user:
+        name: "{{ mysql_user }}"
+        password: "{{ mysql_password }}"
+        priv: "{{ mysql_db }}.*:ALL"
+        state: present
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+      tags: [ mysql ]
+
+  # Firewall Configuration
+    - name: "UFW - Allow HTTP on port {{ http_port }}"
+      ufw:
+        rule: allow
+        port: "{{ http_port }}"
+        proto: tcp
+      when: ansible_os_family == "Debian"
+      tags: [ system ]
+      
+
+    - name: "Firewalld - Allow HTTP on port {{ http_port }}"
+      firewalld:
+        service: http
+        permanent: yes
+        state: enabled
+      when: ansible_os_family == "RedHat"
+
+  # WordPress Configuration
+    - name: Download and unpack latest WordPress
+      unarchive:
+        src: https://wordpress.org/latest.tar.gz
+        dest: "/var/www/{{ http_host }}"
+        remote_src: yes
+        creates: "/var/www/{{ http_host }}/wordpress"
+      tags: [ wordpress ]
+
+    - name: Set ownership
+      file:
+        path: "/var/www/{{ http_host }}"
+        state: directory
+        recurse: yes
+        owner: www-data
+        group: www-data
+      when: ansible_os_family == "Debian"
+      tags: [ wordpress ]
+
+    - name: Set ownership
+      file:
+        path: "/var/www/{{ http_host }}"
+        state: directory
+        recurse: yes
+        owner: "apache"
+        group: "apache"
+      when: ansible_os_family == "RedHat"
+      tags: [ wordpress ]
+
+    - name: Set permissions for directories
+      shell: "/usr/bin/find /var/www/{{ http_host }}/wordpress/ -type d -exec chmod 750 {} \\;"
+      tags: [ wordpress ]
+
+    - name: Set permissions for files
+      shell: "/usr/bin/find /var/www/{{ http_host }}/wordpress/ -type f -exec chmod 640 {} \\;"
+      tags: [ wordpress ]
+
+    - name: Set up wp-config
+      template:
+        src: "files/wp-config.php.j2"
+        dest: "/var/www/{{ http_host }}/wordpress/wp-config.php"
+      tags: [ wordpress ]
+
+  handlers:
+
+    - name: Reload Apache on Debian
+      service: name=apache2 state=reloaded
+      when: ansible_os_family == "Debian"
+
+    - name: Reload Apache on RedHat
+      service: name=httpd state=reloaded
+      when: ansible_os_family == "RedHat"
+
+    - name: Restart Apache on Debian
+      service: name=apache2 state=restarted
+      when: ansible_os_family == "Debian"
+
+    - name: Restart Apache on RedHat
+      service: name=httpd state=restarted
+      when: ansible_os_family == "RedHat"
+      

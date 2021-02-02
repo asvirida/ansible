@@ -1,6 +1,11 @@
-# Wordpress on Ubuntu 20.04 LAMP
+# Wordpress on Linux
 
-This playbook will install a WordPress website on top of a LAMP environment (**L**inux, **A**pache, **M**ySQL and **P**HP) on an Ubuntu 18.04 machine, as explained in the guide on [How to Use Ansible to Set Up Wordpress on Ubuntu 18.04 LAMP](https://www.digitalocean.com/community/tutorials/how-to-use-ansible-to-install-and-set-up-wordpress-with-lamp-on-ubuntu-18-04). A virtualhost will be created with the options specified in the `vars/default.yml` variable file.
+This playbook has been checked for:
+- Ubuntu 20.04 LTS
+- Debian 10
+- Centos 8 (RedHat)
+
+virtualhost will be created with the options specified in the `vars/default.yml` variable file.
 
 ## Settings
 
@@ -20,7 +25,7 @@ Quickstart guide for those already familiar with Ansible:
 ### 1. Obtain the playbook
 ```shell
 git clone https://github.com/asvirida/ansible-playbooks
-cd ansible-playbooks/wordpress-lamp_ubuntu20
+cd ansible-playbooks/wordpress-lamp
 ```
 
 ### 2. Customize Options
@@ -60,7 +65,7 @@ For more information on how to run this Ansible setup, please check this guide: 
 4.1 set `mysql_backup_name` in `vars/default.yml`  
 
 4.2 Run playbook_restore_backup_db.yml :  
-`ansible-playbook ./wordpress-lamp_ubuntu20/playbook_restore_backup_db.yml`
+`ansible-playbook ./wordpress-lamp/playbook_restore_backup_db.yml`
 
 ### 5. If you want Update ip or site domain in db  
 
