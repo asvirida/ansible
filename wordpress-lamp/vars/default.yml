@@ -5,8 +5,8 @@ php_modules_redhat: [ 'python3-PyMySQL', 'php', 'php-json', 'php-odbc', 'php-mys
 
 #MySQL Settings
 mysql_root_password: "MY_STRONG_ROOT_PASSWORD"
-mysql_db: "alex_wp"
-mysql_user: "admin_alex_wp"
+mysql_db: "MYSQL_DB"
+mysql_user: "MY_MYSQL_USER"
 mysql_password: "MY_STRONG_USER_PASSWORD"
 
 #HTTP Settings
