@@ -13,7 +13,7 @@ mysql_password: "MY_STRONG_USER_PASSWORD"
 http_host: "your_domain"
 http_conf: "your_domain.conf"
 http_port: "80"
-http_old_host: "35.238.28.198"  # for restore backup
+http_old_host: "OLD_IP_OR_HOST"  # for restore backup
 http_new_host: "NEW_IP_OR_HOST"  # for restore backup
 
 #MySQL Backup and Update database
