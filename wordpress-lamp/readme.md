@@ -48,8 +48,11 @@ ansible-playbook -l [target] -i [inventory file] -u [remote user] playbook.yml
 
 4.1 set `mysql_backup_name` in `vars/default.yml`  
 
-4.2 Run playbook_restore_backup_db.yml :  
-`ansible-playbook ./wordpress-lamp/playbook_restore_backup_db.yml`
+4.2 Run playbook_restore_backup_db.yml:
+  
+```shell
+ansible-playbook ./wordpress-lamp/playbook_restore_backup_db.yml
+```
 
 ### 5. If you want Update ip or site domain in db  
 
