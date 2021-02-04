@@ -8,138 +8,124 @@
     - vars/default.yml
 
   tasks:
-    - name: Install and Upgrade all packages on Debian
-      apt: name=aptitude update_cache=yes state=latest force_apt_get=yes
+
+    - block:  # ========= Install Packages for Debian ==========
+        - name: Install and Upgrade all packages on Debian
+          apt: name=aptitude update_cache=yes state=latest force_apt_get=yes
+          tags: [ system ]
+
+        - name: Install MySQL Packages on Debian
+          apt: name=mariadb-server update_cache=yes state=latest
+          tags: [ system ]
+
+        - name: Install Apache on Debian
+          apt: name=apache2 update_cache=yes state=latest
+          tags: [ system ]
+
+        - name: Install LAMP Packages on Debian
+          apt: name={{ item }} update_cache=yes state=latest
+          loop: [ 'ufw', 'python3-pymysql', 'php', 'php-mysql', 'libapache2-mod-php' ]
+          tags: [ system ]
+
+        - name: Install PHP Extensions on Debian
+          apt: name={{ item }} update_cache=yes state=latest
+          loop: "{{ php_modules }}"
+          tags: [ system ]
       when: ansible_os_family == "Debian"
-      tags: [ system ]
+          
+    - block:  # ========= Install Packages for RedHat ==========
+        - name: Install and Upgrade all packages on RedHat
+          yum: name=* state=latest
+          tags: [ system ]
+          
+        - name: Install MySQL Packages on RedHat
+          yum: name=mariadb-server update_cache=yes state=latest 
+          tags: [ system ]
 
-    - name: Install and Upgrade all packages on RedHat
-      yum: name=* state=latest
+        - name: Enabled MySQL service on RedHat
+          service: name=mariadb state=started enabled=yes
+          tags: [ system ]
+
+        - name: Install httpd on RedHat
+          yum: name=httpd state=latest
+          tags: [ system ]
+
+        - name: Start Web Servers on RedHat and make it Enable on boot
+          service: name=httpd state=started enabled=yes
+          tags: [ system ]
+
+        - name: Install PHP Extensions on RedHat
+          yum: name={{ item }} update_cache=yes state=latest
+          loop: "{{ php_modules_redhat }}"
+          tags: [ system ]
+
+        - name: Enabled PHP Service on RedHat
+          service: name=php-fpm state=started enabled=yes
+          tags: [ system ]
       when: ansible_os_family == "RedHat"
-      tags: [ system ]
 
-    - name: Install MySQL Packages on Debian
-      apt: name=mariadb-server update_cache=yes state=latest
+    - block:  # ========= Apache Configuration for Debian ==========
+        - name: Create document root on Debian
+          file:
+            path: "/var/www/{{ http_host }}"
+            state: directory
+            owner: "www-data"
+            group: "www-data"
+            mode: '0755'
+          tags: [ apache ]
+
+        - name: Set up Apache VirtualHost on Debian
+          template:
+            src: "files/apache.conf.j2"
+            dest: "/etc/apache2/sites-available/{{ http_conf }}"
+          notify:
+            - Reload Apache on Debian
+          tags: [ apache ]
+
+        - name: Enable rewrite module on Debian
+          shell: /usr/sbin/a2enmod rewrite
+          notify:
+            - Reload Apache on Debian
+          tags: [ apache ]
+
+        - name: Enable new site
+          shell: /usr/sbin/a2ensite {{ http_conf }}
+          notify:
+            - Reload Apache on Debian
+          tags: [ apache ]
+
+        - name: Disable default Apache site
+          shell: /usr/sbin/a2dissite 000-default.conf
+          notify:
+            - Restart Apache on Debian
+          tags: [ apache ]
       when: ansible_os_family == "Debian"
-      tags: [ system ]
 
-    - name: Install MySQL Packages on RedHat
-      yum: name=mariadb-server update_cache=yes state=latest 
+    - block:  # ========= Apache Configuration for RedHat ==========
+        - name: Create document root on RedHat
+          file:
+            path: "/var/www/{{ http_host }}"
+            state: directory
+            owner: "apache"
+            group: "apache"
+            mode: '0755'
+          tags: [ apache ]
+
+        - name: Set up Apache VirtualHost on RedHat
+          template:
+            src: "files/httpd.conf.j2"
+            dest: "/etc/httpd/conf.d/{{ http_conf }}"
+          notify:
+            - Reload Apache on RedHat
+          tags: [ apache ]
+
+        - name: Enable rewrite module on RedHat
+          apache2_module:
+            name: rewrite
+            state: present
+            ignore_configcheck: True
+          tags: [ apache ]
       when: ansible_os_family == "RedHat"
-      tags: [ system ]
-
-    - name: Enabled MySQL service on RedHat
-      service: name=mariadb state=started enabled=yes
-      when: ansible_os_family == "RedHat"
-      tags: [ system ]
-      
-    - name: Install Apache on Debian
-      apt: name=apache2 update_cache=yes state=latest
-      when: ansible_os_family == "Debian"
-      tags: [ system ]
-
-    - name: Install httpd on RedHat
-      yum: name=httpd state=latest
-      when: ansible_os_family == "RedHat"
-      tags: [ system ]
-
-    - name: Start Web Servers on RedHat and make it Enable on boot
-      service: name=httpd state=started enabled=yes
-      when: ansible_os_family == "RedHat"
-      tags: [ system ]
-    
-    - name: Install LAMP Packages on Debian
-      apt: name={{ item }} update_cache=yes state=latest
-      loop: [ 'ufw', 'python3-pymysql', 'php', 'php-mysql', 'libapache2-mod-php' ]
-      when: ansible_os_family == "Debian"
-      tags: [ system ]
-
-    - name: Install PHP Extensions on Debian
-      apt: name={{ item }} update_cache=yes state=latest
-      loop: "{{ php_modules }}"
-      when: ansible_os_family == "Debian"
-      tags: [ system ]
-
-    - name: Install PHP Extensions on RedHat
-      yum: name={{ item }} update_cache=yes state=latest
-      loop: "{{ php_modules_redhat }}"
-      when: ansible_os_family == "RedHat"
-      tags: [ system ]
-
-    - name: Enabled PHP Service on RedHat
-      service: name=php-fpm state=started enabled=yes
-      when: ansible_os_family == "RedHat"
-      tags: [ system ]
-
-  # Apache Configuration
-    - name: Create document root on Debian
-      file:
-        path: "/var/www/{{ http_host }}"
-        state: directory
-        owner: "www-data"
-        group: "www-data"
-        mode: '0755'
-      when: ansible_os_family == "Debian"
-      tags: [ apache ]
-
-    - name: Create document root on RedHat
-      file:
-        path: "/var/www/{{ http_host }}"
-        state: directory
-        owner: "apache"
-        group: "apache"
-        mode: '0755'
-      when: ansible_os_family == "RedHat"
-      tags: [ apache ]
-
-    - name: Set up Apache VirtualHost on Debian
-      template:
-        src: "files/apache.conf.j2"
-        dest: "/etc/apache2/sites-available/{{ http_conf }}"
-      notify:
-        - Reload Apache on RedHat
-        - Reload Apache on Debian
-      when: ansible_os_family == "Debian"
-      tags: [ apache ]
-
-    - name: Set up Apache VirtualHost on RedHat
-      template:
-        src: "files/httpd.conf.j2"
-        dest: "/etc/httpd/conf.d/{{ http_conf }}"
-      notify:
-        - Reload Apache on RedHat
-        - Reload Apache on Debian
-      when: ansible_os_family == "RedHat"
-      tags: [ apache ]
-
-    - name: Enable rewrite module on Debian
-      shell: /usr/sbin/a2enmod rewrite
-      notify:
-        - Reload Apache on Debian
-      when: ansible_os_family == "Debian"
-      tags: [ apache ]
-
-    - name: Enable rewrite module on RedHat
-      apache2_module:
-        name: rewrite
-        state: present
-        ignore_configcheck: True
-      when: ansible_os_family == "RedHat"
-      tags: [ apache ]
-
-    - name: Enable new site
-      shell: /usr/sbin/a2ensite {{ http_conf }}
-      notify:
-        - Reload Apache on Debian
-      when: ansible_os_family == "Debian"
-      tags: [ apache ]
-
-    - name: Disable default Apache site
-      shell: /usr/sbin/a2dissite 000-default.conf
-      notify:
-        - Restart Apache on Debian
-      when: ansible_os_family == "Debian"
-      tags: [ apache ]
 
   # MySQL Configuration
 
@@ -201,15 +187,15 @@
         port: "{{ http_port }}"
         proto: tcp
       when: ansible_os_family == "Debian"
-      tags: [ system ]
+      tags: [ firewall ]
       
-
     - name: "Firewalld - Allow HTTP on port {{ http_port }}"
       firewalld:
         service: http
         permanent: yes
         state: enabled
       when: ansible_os_family == "RedHat"
+      tags: [ firewall ]
 
   # WordPress Configuration
     - name: Download and unpack latest WordPress
