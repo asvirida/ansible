@@ -1,7 +1,7 @@
 ---
 #System Settings
 php_modules: [ 'php-curl', 'php-gd', 'php-mbstring', 'php-xml', 'php-xmlrpc', 'php-soap', 'php-intl', 'php-zip' ]
-php_modules_redhat: [ 'python3-PyMySQL', 'php', 'php-json', 'php-odbc', 'php-mysqlnd', 'php-ldap', 'php-odbc', 'php-snmp' ]
+php_modules_redhat: [ 'php-fpm', 'python3-PyMySQL', 'php-mysqlnd', 'php', 'php-json', 'php-odbc', 'php-ldap', 'php-odbc', 'php-snmp' ]
 
 #MySQL Settings
 mysql_root_password: "MY_STRONG_ROOT_PASSWORD"
